@@ -1,792 +1,304 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Polygon-universal — éditeur</title>
-    <link rel="stylesheet" href="styles.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-    <script src="geolib.js"></script>
-  </head>
-  <body>
-    <div id="app">
-      <div class="bar">
-        <div class="controls" id="controls-build">
-          <button class="btn primary" id="btn-run">Lancer l'algorithme</button>
-          <button class="btn" id="btn-clear">Effacer</button>
-          <button class="btn" id="btn-sample">Exemple</button>
-        </div>
-        <div class="controls hidden" id="controls-run">
-          <button class="btn" id="btn-back">← Éditer</button>
-          <button class="btn" id="btn-prev">Précédent</button>
-          <button class="btn primary" id="btn-play">Lecture</button>
-          <button class="btn" id="btn-next">Suivant</button>
-          <label class="check">
-            <input type="checkbox" id="chk-fails" />
-            blocages seulement
-          </label>
-        </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polygon-Universal Graphs — INFO-F420</title>
+  <link rel="stylesheet" href="style.css" />
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+<body>
+  <header>
+    <p class="course">INFO-F420 — Computational Geometry</p>
+    <h1>Polygon-Universal Graphs</h1>
+    <p class="byline">
+      Kolya Van Sint Jan · Université Libre de Bruxelles
+    </p>
+    <p class="source">
+      D'après
+      <a href="https://arxiv.org/pdf/2103.06916" target="_blank" rel="noopener">Polygon-Universal Graphs</a>, Ophelders,
+      Rutter, Speckmann et Verbeek (SoCG 2021).
+    </p>
+  </header>
+
+  <nav aria-label="Sommaire">
+    <ol>
+      <li><a href="#probleme">Le problème</a></li>
+      <li><a href="#definitions">Définitions</a></li>
+      <li><a href="#conditions">Les deux conditions</a></li>
+      <li><a href="#exemples">Exemples</a></li>
+      <li><a href="#necessite">Nécessité : les spirales</a></li>
+      <li><a href="#suffisance">Suffisance</a></li>
+      <li><a href="#outil">Tester un graphe</a></li>
+      <li><a href="#bilan">Bilan</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="probleme">
+      <h2>1. Le problème</h2>
+      Nous débutons par étudier une question fondamentale en tracé de graphes : étant donné une pair \((G, C)\)
+      d'un graphe G, un cycle C autour de G et un Polygone P ayant autant de sommet que le cycle C, existe-t-il
+      un dessin (sans courbe) de G à l'intérieur de P avec le cycle C qui correspond au polygone P.
+      Dans le cas ou un graphe accepterais P pour tous les polygones simples, nous disons que l'instance \((G, C)\)
+      est <i>polygon-universal</i>. <br>
+      L'article présente donc deux conditions nécessaires et suffisantes pour qu'une instance soit
+      <i>polygon-universal</i>.
+      Ces deux conditions sont basées sur la distance dans le graphe et la distance dans le cycle et sont donc toutes
+      deux facilement
+      vérifiables.
+
+    </section>
+
+    <section id="definitions">
+      <h2>2. Définitions</h2>
+
+
+      <div class="definition">
+        <p><strong>\(G = (V,E)\)</strong> est graphe avec n sommet.</p>
+      </div>
+      <div class="definition">
+        <p>Un dessin \(D\) de \(G\) est une application de chaque \(v \in V(G)\) à des points sur le plan
+          et de chaque arrêtes \(e \in E(G)\) à des Courbes de Jordan reliant ses extrémités.
+        </p>
+      </div>
+      <div class="definition">
+        <p>\((G,C)\) est une instance contenant un graphe G ainsi qu'un cycle \(C\) dans ce graphe.
+        </p>
+      </div>
+      <div class="definition">
+        <p>Une instance \((G,C)\) est planaire s'il existe un dessin planaire de celle-ci avec \(C\) comme
+          face extérieure.
+        </p>
+      </div>
+      <div class="definition">
+        <p>Soit \(P\), un polygone simple avec \(t\) arrêtes \([p_1,...,p_t]\) avec \(p_i \in \mathbb{R}^2\).
+          Un dessin \(D\) de \((G,C)\) respecte \(P\) s'il s'agit d'une application \(D : V \to P\) des sommets de G
+          jusqu'aux points de telle façon que \(D(c_i) = p_i\) et que pour chaque arrête \(\{u,v\} \in E\) le segment
+          entre \(D(u)\) et \(D(v)\) se trouve dans \(P\). <br>
+          Une instance \((G,C)\) est <i>polygon-universal</i> si elle admet un dessin planaire en ligne droite qui
+          respecte
+          chaque polygone simple \(P\) avec \(t\) sommets.
+        </p>
       </div>
 
-      <div class="canvas-wrap" id="canvas-container"></div>
-      <div class="status" id="status"></div>
-    </div>
-
-    <script>
-      const PALETTE = {
-        background: "#faf7f2",
-        edge: "#8a8078", // arête ordinaire
-        vertex: "#3d4a54", // sommet ordinaire
-        selected: "#0e7c7b", // sommet sélectionné (en attente de connexion)
-        ghost: "#b9a6a2", // arête en cours de tracé
-        cycle: "#3d4a54", // le cycle C une fois détecté
-        cycleFill: "#3d4a54", // remplissage de l'intérieur de C
-        inner: "#0e7c7b", // sommets et arêtes hors cycle
-        label: "#5c5c5c",
-        pairFail: "#a63a50", // violation Pair
-        tripleFail: "#6a4c93", // violation Triple
-        ok: "#2f7d52", // vérification qui passe
-      };
-
-      const FILL_ALPHA = 22;
-      const HIT_RADIUS = 14; // rayon de capture d'un sommet, en pixels
-      const DRAG_SLOP = 4; // au-delà, c'est un glissement, pas un clic
-      const STEP_MS = 900; // durée d'une étape en lecture automatique
-
-      function rgb(hex) {
-        const h = hex.replace("#", "");
-        return [
-          parseInt(h.slice(0, 2), 16),
-          parseInt(h.slice(2, 4), 16),
-          parseInt(h.slice(4, 6), 16),
-        ];
-      }
-      function rgba(hex, a) {
-        return rgb(hex).concat([a]);
-      }
-
-      // État
-
-      let mode = "build";
-      let container, statusEl;
-
-      let graph = new Geo.Graph();
-      let nextId = 0;
-      let selected = null;
-      let pressVertex = null; // sommet enfoncé à la souris
-      let pressPos = null;
-      let dragged = false;
-
-      let analysis = null;
-      let steps = []; // étapes de l'animation
-      let stepIndex = 0;
-      let playing = false;
-      let lastStepAt = 0;
-      let failsOnly = false;
-
-      // p5
-
-      function setup() {
-        container = document.getElementById("canvas-container");
-        statusEl = document.getElementById("status");
-        createCanvas(container.clientWidth, container.clientHeight).parent(
-          container
-        );
-        wireButtons();
-        loadSample();
-      }
-
-      function draw() {
-        background.apply(null, rgb(PALETTE.background));
-        if (mode === "build") drawBuild();
-        else drawRun();
-      }
-
-      // Phase 1 — édition
-
-      function drawBuild() {
-        // arête fantôme
-        if (selected !== null) {
-          Geo.drawSegment(
-            graph.position(selected),
-            { x: mouseX, y: mouseY },
-            { stroke: rgb(PALETTE.ghost), strokeWeight: 1.5, dashed: true }
-          );
-        }
-
-        Geo.drawGraph(graph, {
-          stroke: rgb(PALETTE.edge),
-          strokeWeight: 2,
-          vertexFill: rgb(PALETTE.vertex),
-          vertexRadius: 7,
-        });
-
-        if (selected !== null) {
-          ring(graph.position(selected), rgb(PALETTE.selected), 26, 3);
-        }
-
-        // sommet survolé
-        const hover = Geo.pickGraphVertex(
-          graph,
-          { x: mouseX, y: mouseY },
-          HIT_RADIUS
-        );
-        if (hover !== null && hover !== selected) {
-          ring(graph.position(hover), rgb(PALETTE.selected), 22, 1.5);
-        }
-
-        setStatus(
-          graph.order +
-            " sommets · " +
-            graph.size +
-            " arêtes" +
-            (selected !== null ? " · sélection : v" + selected : "")
-        );
-      }
-
-      function mousePressed() {
-        if (mode !== "build" || !insideCanvas()) return;
-        pressPos = { x: mouseX, y: mouseY };
-        pressVertex = Geo.pickGraphVertex(graph, pressPos, HIT_RADIUS);
-        dragged = false;
-      }
-
-      function mouseDragged() {
-        if (mode !== "build" || pressVertex === null) return;
-        if (Geo.dist(pressPos, { x: mouseX, y: mouseY }) > DRAG_SLOP) {
-          dragged = true;
-        }
-        if (dragged) graph.setPosition(pressVertex, { x: mouseX, y: mouseY });
-      }
-
-      function mouseReleased() {
-        if (mode !== "build" || pressPos === null) return;
-        const wasDrag = dragged;
-        const v = pressVertex;
-        pressVertex = null;
-        pressPos = null;
-        dragged = false;
-        if (wasDrag) return; // un glissement ne sélectionne rien
-
-        if (v !== null) {
-          if (selected === null) {
-            selected = v;
-          } else if (selected === v) {
-            selected = null; // reclic sur le même sommet : on annule
-          } else {
-            // bascule l'arête : présente ; on la retire, absente ; on la crée
-            if (graph.hasEdge(selected, v)) graph.removeEdge(selected, v);
-            else graph.addEdge(selected, v);
-            selected = null;
-          }
-        } else if (selected !== null) {
-          selected = null;
-        } else {
-          graph.addVertex(nextId++, { x: mouseX, y: mouseY });
-        }
-      }
-
-      function keyPressed() {
-        if (mode === "build") {
-          if (key.toLowerCase() === "d" || keyCode === BACKSPACE) {
-            const v = Geo.pickGraphVertex(
-              graph,
-              { x: mouseX, y: mouseY },
-              HIT_RADIUS
-            );
-            if (v !== null) {
-              graph.removeVertex(v);
-              if (selected === v) selected = null;
-            }
-          }
-          if (keyCode === ESCAPE) selected = null;
-          return;
-        }
-        // mode run
-        if (keyCode === RIGHT_ARROW) stepBy(1);
-        if (keyCode === LEFT_ARROW) stepBy(-1);
-        if (key === " ") togglePlay();
-      }
-
-      function insideCanvas() {
-        return (
-          mouseX >= 0 && mouseY >= 0 && mouseX <= width && mouseY <= height
-        );
-      }
-
-      // Analyse de G au couple (G, C)
-
-      function faces(g) {
-        const pos = function (v) {
-          return g.position(v);
-        };
-        const sorted = {};
-        const idx = {};
-        g.vertices().forEach(function (v) {
-          const ns = g
-            .neighbors(v)
-            .slice()
-            .sort(function (a, b) {
-              return (
-                Math.atan2(pos(a).y - pos(v).y, pos(a).x - pos(v).x) -
-                Math.atan2(pos(b).y - pos(v).y, pos(b).x - pos(v).x)
-              );
-            });
-          sorted[v] = ns;
-          ns.forEach(function (u, i) {
-            idx[v + "|" + u] = i;
-          });
-        });
-
-        const seen = new Set();
-        const out = [];
-        g.vertices().forEach(function (u) {
-          g.neighbors(u).forEach(function (v) {
-            if (seen.has(u + "|" + v)) return;
-            const walk = [];
-            let a = u;
-            let b = v;
-            for (let guard = 0; guard < 10000; guard++) {
-              seen.add(a + "|" + b);
-              walk.push(a);
-              const ns = sorted[b];
-              const w = ns[(idx[b + "|" + a] + 1) % ns.length];
-              a = b;
-              b = w;
-              if (a === u && b === v) break;
-            }
-            out.push(walk);
-          });
-        });
-        return out;
-      }
-
-      function walkArea(g, walk) {
-        let s = 0;
-        for (let i = 0; i < walk.length; i++) {
-          const a = g.position(walk[i]);
-          const b = g.position(walk[(i + 1) % walk.length]);
-          s += a.x * b.y - b.x * a.y;
-        }
-        return Math.abs(s / 2);
-      }
-
-      /**
-       * Cherche le cycle C. Renvoie { cycle } ou { error } avec un message et
-       * les sommets fautifs à mettre en évidence.
-       */
-      function findCycle(g) {
-        if (g.order < 3) {
-          return { error: "Il faut au moins 3 sommets." };
-        }
-        if (!g.isConnected()) {
-          return { error: "Le graphe doit être connexe." };
-        }
-        if (!g.isPlaneDrawing()) {
-          return { error: "Le dessin a des arêtes qui se croisent." };
-        }
-        const fs = faces(g);
-        if (!fs.length) return { error: "Le graphe ne contient aucun cycle." };
-
-        let best = fs[0];
-        let bestA = walkArea(g, fs[0]);
-        fs.forEach(function (w) {
-          const a = walkArea(g, w);
-          if (a > bestA) {
-            bestA = a;
-            best = w;
-          }
-        });
-
-        if (new Set(best).size !== best.length) {
-          const counts = {};
-          best.forEach(function (v) {
-            counts[v] = (counts[v] || 0) + 1;
-          });
-          const culprits = Object.keys(counts)
-            .filter(function (v) {
-              return counts[v] > 1;
-            })
-            .map(Number);
-          return {
-            error:
-              "Le bord extérieur n'est pas un cycle simple (sommet de coupure).",
-            culprits: culprits,
-          };
-        }
-        if (best.length < 3)
-          return { error: "Le cycle extérieur est trop court." };
-        return { cycle: best };
-      }
-
-      /** Conditions pair et triple. */
-      function conditions(g, cyc) {
-        const t = cyc.length;
-        const dG = {};
-        g.vertices().forEach(function (v) {
-          const r = g.bfs(v);
-          dG[v] = {};
-          r.dist.forEach(function (d, k) {
-            dG[v][k] = d;
-          });
-        });
-        const dC = function (i, j) {
-          const d = Math.abs(i - j);
-          return Math.min(d, t - d);
-        };
-
-        const pairs = [];
-        for (let i = 0; i < t; i++) {
-          for (let j = i + 1; j < t; j++) {
-            const a = dC(i, j);
-            const b = dG[cyc[i]][cyc[j]];
-            pairs.push({ i: i, j: j, dC: a, dG: b, ok: a <= b });
-          }
-        }
-
-        const triples = [];
-        for (let i = 0; i < t; i++) {
-          for (let j = i + 1; j < t; j++) {
-            for (let k = j + 1; k < t; k++) {
-              if (dC(i, j) + dC(j, k) + dC(i, k) < t) continue;
-              const corners = [cyc[i], cyc[j], cyc[k]];
-              let worst = null;
-              g.vertices().forEach(function (v) {
-                if (corners.indexOf(v) !== -1) return; // pas témoin de soi-même
-                const sum = dG[cyc[i]][v] + dG[cyc[j]][v] + dG[cyc[k]][v];
-                if (worst === null || sum < worst.sum)
-                  worst = { v: v, sum: sum };
-              });
-              if (worst === null) continue;
-              triples.push({
-                i: i,
-                j: j,
-                k: k,
-                v: worst.v,
-                sum: worst.sum,
-                bound: t / 2,
-                ok: worst.sum > t / 2,
-              });
-            }
-          }
-        }
-
-        return {
-          t: t,
-          pairs: pairs,
-          triples: triples,
-          pairOK: pairs.every(function (p) {
-            return p.ok;
-          }),
-          tripleOK: triples.every(function (x) {
-            return x.ok;
-          }),
-        };
-      }
-
-      function analyse() {
-        const found = findCycle(graph);
-        if (found.error)
-          return { error: found.error, culprits: found.culprits };
-        const cyc = found.cycle;
-        const cond = conditions(graph, cyc);
-        const interior = graph.vertices().filter(function (v) {
-          return cyc.indexOf(v) === -1;
-        });
-        return {
-          cycle: cyc,
-          interior: interior,
-          cond: cond,
-          universal: cond.pairOK && cond.tripleOK,
-        };
-      }
-
-      // Phase 2 — animation
-
-      function buildSteps(a) {
-        const s = [{ kind: "cycle" }];
-        a.cond.pairs.forEach(function (p) {
-          s.push({ kind: "pair", data: p });
-        });
-        a.cond.triples.forEach(function (x) {
-          s.push({ kind: "triple", data: x });
-        });
-        s.push({ kind: "verdict" });
-        return s;
-      }
-
-      function visibleSteps() {
-        if (!failsOnly)
-          return steps.map(function (_, i) {
-            return i;
-          });
-        const keep = [];
-        steps.forEach(function (st, i) {
-          if (st.kind === "cycle" || st.kind === "verdict") keep.push(i);
-          else if (!st.data.ok) keep.push(i);
-        });
-        return keep;
-      }
-
-      function currentPos(vis) {
-        const pos = vis.indexOf(stepIndex);
-        if (pos !== -1) return pos;
-
-        let fallback = 0;
-        for (let k = 0; k < vis.length; k++)
-          if (vis[k] <= stepIndex) fallback = k;
-        return fallback;
-      }
-
-      function stepBy(delta) {
-        const vis = visibleSteps();
-        if (!vis.length) return;
-        const pos = Math.max(
-          0,
-          Math.min(vis.length - 1, currentPos(vis) + delta)
-        );
-        stepIndex = vis[pos];
-        lastStepAt = millis();
-      }
-
-      function drawRun() {
-        if (analysis.error) {
-          drawErrorState();
-          return;
-        }
-
-        const a = analysis;
-        const st = steps[stepIndex];
-
-        const poly = new Geo.Polygon(
-          a.cycle.map(function (v) {
-            return graph.position(v);
-          })
-        );
-        Geo.drawPolygon(poly, {
-          fill: rgba(PALETTE.cycleFill, FILL_ALPHA),
-          stroke: rgb(PALETTE.cycle),
-          strokeWeight: 2.5,
-          vertices: false,
-        });
-
-        // Arêtes hors cycle.
-        graph.edges().forEach(function (e) {
-          if (onCycle(a.cycle, e.u, e.v)) return;
-          Geo.drawSegment(graph.position(e.u), graph.position(e.v), {
-            stroke: rgb(PALETTE.inner),
-            strokeWeight: 2,
-          });
-        });
-
-        if (st.kind === "pair") drawPairStep(st.data);
-        else if (st.kind === "triple") drawTripleStep(st.data);
-        else if (st.kind === "verdict") drawVerdict(a);
-
-        a.cycle.forEach(function (v, i) {
-          dot(graph.position(v), rgb(PALETTE.cycle), 7);
-          label(graph.position(v), "c" + sub(i), poly.centroid());
-        });
-        a.interior.forEach(function (v) {
-          dot(graph.position(v), rgb(PALETTE.inner), 7);
-          label(graph.position(v), "v" + v, poly.centroid());
-        });
-
-        advanceIfPlaying();
-        setStatus(stepText(st, a));
-      }
-
-      function drawErrorState() {
-        Geo.drawGraph(graph, {
-          stroke: rgb(PALETTE.edge),
-          strokeWeight: 2,
-          vertexFill: rgb(PALETTE.vertex),
-          vertexRadius: 7,
-        });
-        (analysis.culprits || []).forEach(function (v) {
-          const p = graph.position(v);
-          if (p) ring(p, rgb(PALETTE.pairFail), 28, 3);
-        });
-        setStatus("⚠ " + analysis.error);
-      }
-
-      function drawPairStep(p) {
-        const a = analysis;
-        const col = rgb(p.ok ? PALETTE.ok : PALETTE.pairFail);
-        const u = a.cycle[p.i];
-        const w = a.cycle[p.j];
-        drawPath(graph.shortestPath(u, w), col, p.ok ? 3 : 4.5);
-        ring(graph.position(u), col, 26, 2.5);
-        ring(graph.position(w), col, 26, 2.5);
-      }
-
-      function drawTripleStep(x) {
-        const a = analysis;
-        const col = rgb(x.ok ? PALETTE.ok : PALETTE.tripleFail);
-        [x.i, x.j, x.k].forEach(function (m) {
-          const c = a.cycle[m];
-          drawPath(graph.shortestPath(c, x.v), col, x.ok ? 2.5 : 4);
-          ring(graph.position(c), col, 26, 2.5);
-        });
-        ring(graph.position(x.v), col, 30, 2.5);
-      }
-
-      /** Étape finale : tous les blocages d'un coup. */
-      function drawVerdict(a) {
-        a.cond.pairs.forEach(function (p) {
-          if (p.ok) return;
-          drawPath(
-            graph.shortestPath(a.cycle[p.i], a.cycle[p.j]),
-            rgb(PALETTE.pairFail),
-            4.5
-          );
-        });
-        a.cond.triples.forEach(function (x) {
-          if (x.ok) return;
-          [x.i, x.j, x.k].forEach(function (m) {
-            drawPath(
-              graph.shortestPath(a.cycle[m], x.v),
-              rgb(PALETTE.tripleFail),
-              3
-            );
-          });
-          ring(graph.position(x.v), rgb(PALETTE.tripleFail), 30, 2.5);
-        });
-      }
-
-      function advanceIfPlaying() {
-        if (!playing) return;
-        if (millis() - lastStepAt < STEP_MS) return;
-        const vis = visibleSteps();
-        if (currentPos(vis) >= vis.length - 1) {
-          playing = false;
-          syncButtons();
-          return;
-        }
-        stepBy(1);
-      }
-
-      function stepText(st, a) {
-        const vis = visibleSteps();
-        const head =
-          "étape " + (currentPos(vis) + 1) + "/" + vis.length + " · ";
-        if (st.kind === "cycle") {
-          return (
-            head +
-            "cycle C détecté : t = " +
-            a.cycle.length +
-            " sommets, " +
-            a.interior.length +
-            " sommet(s) intérieur(s)"
-          );
-        }
-        if (st.kind === "pair") {
-          const p = st.data;
-          return (
-            head +
-            "Pair (c" +
-            sub(p.i) +
-            ", c" +
-            sub(p.j) +
-            ") : d_C = " +
-            p.dC +
-            ", d_G = " +
-            p.dG +
-            " → " +
-            (p.ok ? "ok" : "BLOQUE, raccourci dans G")
-          );
-        }
-        if (st.kind === "triple") {
-          const x = st.data;
-          return (
-            head +
-            "Triple (c" +
-            sub(x.i) +
-            ", c" +
-            sub(x.j) +
-            ", c" +
-            sub(x.k) +
-            ") témoin v" +
-            x.v +
-            " : somme = " +
-            x.sum +
-            ", seuil t/2 = " +
-            x.bound +
-            " → " +
-            (x.ok ? "ok" : "BLOQUE, sommet trop central")
-          );
-        }
-        const c = a.cond;
-        return (
-          head +
-          (a.universal
-            ? "Pair : oui | Triple : oui | L'instance est polygone-universelle"
-            : "Pair " +
-              (c.pairOK ? ": oui |" : ": non |") +
-              " Triple " +
-              (c.tripleOK ? ": oui" : ": non") +
-              " | Non universelle")
-        );
-      }
-
-      // Dessin
-
-      function drawPath(names, col, weight) {
-        if (!names) return;
-        for (let i = 0; i + 1 < names.length; i++) {
-          Geo.drawSegment(
-            graph.position(names[i]),
-            graph.position(names[i + 1]),
-            {
-              stroke: col,
-              strokeWeight: weight,
-            }
-          );
-        }
-      }
-
-      function dot(p, col, r) {
-        push();
-        noStroke();
-        fill(col[0], col[1], col[2]);
-        circle(p.x, p.y, r * 2);
-        pop();
-      }
-
-      function ring(p, col, d, w) {
-        push();
-        noFill();
-        stroke(col[0], col[1], col[2]);
-        strokeWeight(w);
-        circle(p.x, p.y, d);
-        pop();
-      }
-
-      function label(p, txt, center) {
-        const lc = rgb(PALETTE.label);
-        const d = Geo.sub(p, center);
-        const l = Geo.len(d);
-        const off =
-          l < 1e-6 ? { x: 0, y: -22 } : Geo.mul(Geo.mul(d, 1 / l), 22);
-        push();
-        noStroke();
-        fill(lc[0], lc[1], lc[2]);
-        textSize(13);
-        textAlign(CENTER, CENTER);
-        text(txt, p.x + off.x, p.y + off.y);
-        pop();
-      }
-
-      function sub(i) {
-        return String(i).replace(/\d/g, function (d) {
-          return "₀₁₂₃₄₅₆₇₈₉"[+d];
-        });
-      }
-
-      function onCycle(cyc, u, v) {
-        const t = cyc.length;
-        for (let i = 0; i < t; i++) {
-          const a = cyc[i];
-          const b = cyc[(i + 1) % t];
-          if ((a === u && b === v) || (a === v && b === u)) return true;
-        }
-        return false;
-      }
-
-      // Interface
-
-      function wireButtons() {
-        document.getElementById("btn-run").onclick = startRun;
-        document.getElementById("btn-back").onclick = backToBuild;
-        document.getElementById("btn-clear").onclick = function () {
-          graph = new Geo.Graph();
-          nextId = 0;
-          selected = null;
-        };
-        document.getElementById("btn-sample").onclick = loadSample;
-        document.getElementById("btn-prev").onclick = function () {
-          playing = false;
-          stepBy(-1);
-          syncButtons();
-        };
-        document.getElementById("btn-next").onclick = function () {
-          playing = false;
-          stepBy(1);
-          syncButtons();
-        };
-        document.getElementById("btn-play").onclick = togglePlay;
-        document.getElementById("chk-fails").onchange = function (e) {
-          failsOnly = e.target.checked;
-          stepBy(0);
-        };
-      }
-
-      function startRun() {
-        analysis = analyse();
-        mode = "run";
-        steps = analysis.error ? [] : buildSteps(analysis);
-        stepIndex = 0;
-        playing = false;
-        lastStepAt = millis();
-        document.getElementById("controls-build").classList.add("hidden");
-        document.getElementById("controls-run").classList.remove("hidden");
-        syncButtons();
-      }
-
-      function backToBuild() {
-        mode = "build";
-        playing = false;
-        selected = null;
-        document.getElementById("controls-run").classList.add("hidden");
-        document.getElementById("controls-build").classList.remove("hidden");
-      }
-
-      function togglePlay() {
-        if (mode !== "run" || !steps.length) return;
-        playing = !playing;
-        if (playing) {
-          const vis = visibleSteps();
-          if (currentPos(vis) === vis.length - 1) stepIndex = vis[0];
-          lastStepAt = millis();
-        }
-        syncButtons();
-      }
-
-      function syncButtons() {
-        document.getElementById("btn-play").textContent = playing
-          ? "Pause"
-          : "Lecture";
-      }
-
-      function setStatus(txt) {
-        if (statusEl.textContent !== txt) statusEl.textContent = txt;
-      }
-
-      function loadSample() {
-        graph = new Geo.Graph();
-        nextId = 0;
-        const cx = width / 2;
-        const cy = height / 2;
-        const r = Math.min(width, height) * 0.34;
-        for (let i = 0; i < 6; i++) {
-          const a = (2 * Math.PI * i) / 6 - Math.PI / 2;
-          graph.addVertex(nextId++, {
-            x: cx + r * Math.cos(a),
-            y: cy + r * Math.sin(a),
-          });
-        }
-        for (let i = 0; i < 6; i++) graph.addEdge(i, (i + 1) % 6);
-        graph.addVertex(nextId++, { x: cx, y: cy });
-        [0, 2, 4].forEach(function (i) {
-          graph.addEdge(i, 6);
-        });
-        selected = null;
-      }
-
-      function windowResized() {
-        resizeCanvas(container.clientWidth, container.clientHeight);
-      }
-    </script>
-  </body>
+      <div class="definition">
+        <p>\(d_C\) est la distance sur le cycle entre deux sommets.</p>
+      </div>
+      <div class="definition">
+        <p>\(d_G\) est la distance sur le graphe entre deux sommets.</p>
+      </div>
+
+      Si une de ces conditions n'est pas remplie, le graphe n'est pas <i>polygon-universal</i>
+
+
+    </section>
+
+    <section id="conditions">
+      <h2>3. Les deux conditions</h2>
+
+      Cette première condition définit le fait qu'aucun "raccourcis" ne peut exister à l'intérieur du graphe.
+      Cela veut dire que pour chaque sommets appartenant au cycle, le plus court chemin vers un autre sommet du cycle
+      doit se trouver
+      sur ce cycle.
+      <div class="callout">
+        <p><strong>Condition Pair.</strong> Pour tous \(i, j\) :</p>
+        \[ d_C(c_i, c_j) \le d_G(c_i, c_j) \]
+      </div>
+
+      Cette seconde condition nous dit qu'aucun sommet ne peut être trop central vis-à-vis de trois autres sommets
+      du cycle. Nous prenons donc 3 sommets sur le cycle \(C\), la distance d'un à l'autre sur \(C\) est donc égal à
+      \(t\) (le nombre de sommets de \(C\)).
+      Par rapport à un témoin \(v \in V\), la somme des distances entre \(v\) et les sommets \(c_i,c_j,c_k\) doit être
+      strictement inférieur
+      a la moitié du nombre de sommets sur le Cycle.
+      <div class="callout">
+        <p><strong>Condition Triple.</strong> Pour tous les sommets \(v \in V\) et les \(i, j, k\) distincts avec
+          \(d_C(c_i,c_j) + d_C(c_j,c_k) + d_C(c_k,c_i) = t\ \) :</p>
+        \[ d_G(c_i,v) + d_G(c_j,v) + d_G(c_k,v) \gt t/2 \]
+      </div>
+    </section>
+
+    <section id="exemples">
+      <h2>4. Exemples</h2>
+
+      Ci-dessous les 4 cas de figures illustrés :
+      <ul>
+        <li>1. Cette instance est <i>polygon-universal</i> ; nous voyons bien que les deux conditions sont respectées.
+          La distance sur le graphe et sur le cycle entre \(c_0\) et \(c_3\) sont égales donc la condition pair est
+          validée.
+          Nous voyons aussi assez simplement que si nous prenons par exemple le sommet \(x\), et trois sommets sur \(C\)
+          nous aurons toujours :
+          \[d_G(c_i,x) + d_G(c_j,x) + d_G(c_k,x) \gt t/2\]
+        </li>
+
+        <li>
+          2. Sur cette instance nous voyons que \(d_C(c_0,c_3) \gt d_G(c_0,c_3)\) ce qui viole la condition pair.
+        </li>
+
+        <li>
+          3. Sur cette instance nous voyons que \(d_G(c_0,x) + d_G(c_2,x) + d_G(c_4,x) = 3\) et comme \(t/2 = 3\) la
+          condition triple est violée alors
+          que la seconde tenait encore.
+        </li>
+        <li>
+          4. Cetter dernière instance est simplement un example avec les deux conditions violées.
+        </li>
+      </ul>
+
+      <figure class="demo">
+        <iframe src="https://dfsmjl.csb.app/"
+          title="Galerie d'exemples : instances qui vérifient ou violent les conditions" loading="lazy"></iframe>
+      </figure>
+    </section>
+
+    <section id="necessite">
+      <h2>5. Nécessité : les spirales</h2>
+
+      Voici deux exemples de la nécessité des conditions. Tout d'abord, quand la condition
+      pair n'est pas respectée, il nous suffit de créer un polygone \(P\) en spirale pour montrer
+      qu'il existe au moins un polygone que l'instance ne pourra pas respectée. Ce premier exemple
+      laisse tracer à l'utilisateur 4 segments pour montrer qu'il est impossible d'obtenir un graphe
+      respectant \(P\) sans corriger la condition paire (dans ce cas précis ajouter un cinquième
+      segment la corrigerait). <br>
+      Pour la condition triple, le procédé est similaire, quand celle-ci n'est pas respectée, il nous
+      suffit de créer une spirale à trois bras qui empêche tout dessin de l'instance respectant ce polygone.
+
+      <figure class="demo">
+        <iframe src="https://8tgkw9.csb.app/" title="Spirales" loading="lazy"></iframe>
+      </figure>
+    </section>
+
+    <section id="suffisance">
+      <h2>6. Suffisance</h2>
+
+      Les spirales montrent donc que les deux conditions sont nécessaires. Il reste à établir
+      la réciproque, qui est la partie difficile : une instance qui vérifie les deux conditions se dessine
+      dans n'importe quel polygone simple.
+
+      <div class="callout">
+        <p>
+          <strong>Théorème 18.</strong>
+          Si une instance \((G, C)\) satisfait les conditions Pair et Triple, alors
+          pour toute triangulation \(\mathcal{T}\) de tout polygone simple \(P\) à
+          \(t\) sommets, \((G, C)\) admet un dessin qui respecte \(\mathcal{T}\)
+          donc en particulier un dessin qui respecte \(P\).
+        </p>
+      </div>
+
+      Combiné aux spirales, ce théorème nous donne donc bien : \((G,C)\) est <i>polygon-universal</i>
+      si et seulement si les conditions pair et triple sont satisfaites. Nous avons donc une propriété
+      sur une infinitée de polygones se ramènant à deux égalités sur des distances entières.
+
+      <h3>Nature de la preuve</h3>
+
+      L'argument se fait par contraposée car construire un dessin polygone par polygone n'a pas un nombre
+      fini de solutions. Nous prenons donc un polygone et une triangulation quelconques, on fait tourner un
+      algorithme tentant de produire un dessin et on montre que si cet algorithme échoue, alors on peut lire dans
+      \(G\) une violation de la condition pair ou triple.
+
+      <br>
+
+      Trois idées le structurent. D'abord on fixe une triangulation \(\mathcal{T}\) de \(P\) et on ne cherche
+      que des dessins dont aucune arête ne traverse une arête de \(\mathcal{T}\). Après cela on
+      discrétise : au lieu de chercher des coordonnées réelles, on affecte à chaque sommet de \(G\) un simplexe
+      de \(\mathcal{T}\) (un sommet, une arête ou un triangle). On appelle cette affectation un sketch. Par convexité
+      des triangles, placer ensuite chaque sommet n'importe où dans le simplexe qui lui est assigné donne un dessin
+      valide. Enfin, l'on procède à une récursion : chaque arête de \(\mathcal{T}\) découpe dans \(P\) une
+      <i>pocket</i>,
+      et ces <i>pockets</i> s'emboîtent le long de l'arbre dual de \(\mathcal{T}\), ce qui permet de résoudre le
+      problème
+      de proche en proche pour après recoller les résultats.
+
+
+
+      <p class="aside">
+        Le détail de la construction : sketches, décomposition en pockets,
+        programmation dynamique et implémentation en temps linéaire occupe
+        les sections 3 à 5 de l'article et n'est pas repris ici.
+      </p>
+    </section>
+
+    <section id="outil">
+      <h2>7. Tester un graphe</h2>
+      Voici un outil pour calculer si un graphe est <i>polygon-universal</i> ou pas.
+      Il utilise simplement les deux conditions décrites ci-dessus pour déterminer
+      cela. <br>
+      Un clic fera apparaître un sommet, un clic sur un sommet le sélectionne et un second clic
+      sur un autre sommet crée l'arête qui les relie (ou la retire si elle existe déjà). Glisser
+      un sommet le déplace et la touche <i>d</i> supprime le sommet sous le curseur.
+
+
+      <figure class="demo">
+        <iframe src="https://l3p3gy.csb.app/" title="Éditeur de graphe et vérification des conditions"
+          loading="lazy"></iframe>
+      </figure>
+    </section>
+    <section id="bilan">
+      <h2>8. Bilan</h2>
+      Le problème de départ portait sur une infinité d'objets car pour qu'une instance soit universelle
+      il faut qu'un dessin existe pour tout polygone simple à \(t\) sommets. Sous cette forme le problème
+      est exactement dans la classe \(\forall\exists\mathbb{R}\), la théorie universelle-existentielle des réels,
+      définie par
+      <a href="#ref-dobbins">Dobbins <em>et al.</em></a>, dans laquelle on sait
+      seulement que \(\mathrm{NP} \subseteq \exists\mathbb{R} \subseteq
+      \forall\exists\mathbb{R} \subseteq \mathrm{PSPACE}\)
+      (<a href="#ref-canny">Canny</a>).
+
+      <br>
+      <br>
+      L'article fait donc disparaître cette quantification car les conditions pair et triple ne parlent
+      ni de coordonnées, ni d'angles, ni de polygones : uniquement de distances entières dans le graphe et le
+      long du cycle. Une infinité de configurations est donc remplacé par deux inégalités et le problème
+      redescend donc en temps polynomial.
+      <br>
+      <br>
+      L'article ne parle par contre que des polygones simples et ne s'avance pas sur
+      les polygones à trous. <br>
+      Le coût de la vérification des deux conditions demande, avec un algorithme naïf, \(\Omega(n^3)\) opérations (comme
+      celui implémenté
+      ci-dessus) mais pourraît probablement être amélioré.
+    </section>
+
+    <section id="references">
+      <h2>Références</h2>
+      <ol class="refs">
+        <li>
+          T. Ophelders, I. Rutter, B. Speckmann, K. Verbeek.
+          <em>Polygon-Universal Graphs.</em> SoCG 2021.
+          <a href="https://arxiv.org/abs/2103.06916" target="_blank" rel="noopener">arXiv:2103.06916</a>
+        </li>
+
+        <li id="ref-dobbins">
+          Michael G. Dobbins, Linda Kleist, Tillmann Miltzow, and Paweł Rzążewski.
+          <em>∀∃R-completeness
+            and area-universality.
+          </em>
+          In Proc. 44th International Workshop on Graph-Theoretic Concepts in
+          Computer Science, LNCS 11159, pages 164–175, 2018.
+          <a href="https://link.springer.com/chapter/10.1007/978-3-030-00256-5_14" target="_blank"
+            rel="noopener">doi:10.1007/978-3-030-00256-5\_14></a>
+        </li>
+
+        <li id="ref-canny">
+          John Canny
+          <em>
+            Some algebraic and geometric computations in PSPACE
+          </em>
+          InProc. 20th Symposium on Theory of Computing, page 460–467, 1988.
+          <a href="https://dl.acm.org/doi/10.1145/62212.62257" target="_blank"
+            rel="noopener">doi:10.1145/62212.62257></a>
+        </li>
+
+      </ol>
+    </section>
+  </main>
+
+  <footer>
+    <p>INFO-F420 | Université Libre de Bruxelles</p>
+  </footer>
+</body>
+
 </html>
