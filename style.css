@@ -1,0 +1,252 @@
+
+:root {
+  --page: #faf8f4; /* fond de page */
+  --surface: #ffffff; /* encadrés, démos */
+  --ink: #2e3338; /* texte courant */
+  --ink-soft: #6b6862; /* texte secondaire */
+  --accent: #0e5f6b; /* liens et filets */
+  --border: #ddd6cc;
+
+  --width: 46rem; /* largeur de la colonne de texte */
+  --radius: 6px;
+}
+
+/* --- base ---------------------------------------------------------------- */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 3rem 1.25rem 4rem;
+  background: var(--page);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+header,
+nav,
+main,
+footer {
+  max-width: var(--width);
+  margin: 0 auto;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(14, 95, 107, 0.3);
+}
+
+a:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* en-tête */
+
+header {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.course {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+h1 {
+  margin: 0 0 0.6rem;
+  font-size: 1.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.byline {
+  margin: 0 0 0.3rem;
+  color: var(--ink-soft);
+}
+
+.source {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+/* sommaire */
+
+nav {
+  margin-bottom: 2.5rem;
+  font-size: 0.94rem;
+}
+
+nav ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 2;
+  column-gap: 2rem;
+}
+
+nav li {
+  margin-bottom: 0.3rem;
+  break-inside: avoid;
+}
+
+nav a {
+  border-bottom: none;
+  color: var(--ink-soft);
+}
+
+nav a:hover {
+  color: var(--accent);
+}
+
+/* sections */
+
+section {
+  margin-bottom: 3rem;
+  scroll-margin-top: 1.5rem;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+h3 {
+  margin: 1.8rem 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* encadrés  */
+
+.callout,
+.definition {
+  margin: 1.2rem 0;
+  padding: 0.9rem 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.callout p:last-child,
+.definition p:last-child {
+  margin-bottom: 0;
+}
+
+.aside {
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--border);
+  border-radius: 0;
+  font-size: 0.94rem;
+  color: var(--ink-soft);
+}
+
+kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
+/*  figures et démos */
+
+figure {
+  margin: 1.5rem 0;
+}
+
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
+figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.demo {
+  width: min(64rem, 100%);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.demo iframe {
+  display: block;
+  width: 100%;
+  height: 640px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.demo-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: min(72rem, 100%);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.demo-pair .demo {
+  width: 100%;
+  margin-left: 0;
+  transform: none;
+}
+
+@media (max-width: 720px) {
+  .demo-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .demo iframe {
+    height: 460px;
+  }
+}
+
+/* références et pied de page */
+
+.refs {
+  padding-left: 1.2rem;
+  font-size: 0.94rem;
+}
+
+.refs li {
+  margin-bottom: 0.5rem;
+  scroll-margin-top: 1.5rem;
+}
+
+.refs li:target {
+  background: #fdf3d8;
+  border-radius: 4px;
+  box-shadow: 0 0 0 6px #fdf3d8;
+}
+
+footer {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}

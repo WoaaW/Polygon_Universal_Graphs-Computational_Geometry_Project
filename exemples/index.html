@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Polygon-universal — exemples</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="geolib.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="scenes" id="scene-buttons"></div>
+      <div class="canvas-wrap" id="canvas-container"></div>
+    </div>
+
+    <script>
+      const PALETTE = {
+        background: "#faf7f2", // fond du canvas
+        polygonLine: "#3d4a54", // bord du polygone P
+        polygonFill: "#3d4a54",
+        cycleVertex: "#3d4a54", // sommets du cycle C
+        innerEdge: "#0e7c7b", // arêtes intérieures de G
+        innerVertex: "#0e7c7b", // sommets intérieurs de G
+        label: "#5c5c5c", // étiquettes
+        pairViolation: "#a63a50", // chemin qui viole la condition Pair
+        tripleViolation: "#6a4c93", // branches qui violent la condition Triple
+      };
+
+      const FILL_ALPHA = 26;
+
+      function rgb(hex) {
+        const h = hex.replace("#", "");
+        return [
+          parseInt(h.slice(0, 2), 16),
+          parseInt(h.slice(2, 4), 16),
+          parseInt(h.slice(4, 6), 16),
+        ];
+      }
+
+      function rgba(hex, alpha) {
+        return rgb(hex).concat([alpha]);
+      }
+
+      const HEX = [
+        [0, 0],
+        [2.2, -0.4],
+        [3.8, 1.1],
+        [3.2, 3.2],
+        [1.2, 3.8],
+        [-0.4, 2.0],
+      ];
+
+      const SCENES = [
+        {
+          label: "Universel",
+          polygon: HEX,
+          inner: { x: [1.5, 1.05], y: [1.8, 2.15] },
+          innerEdges: [
+            ["c0", "x"],
+            ["x", "y"],
+            ["y", "c3"],
+          ],
+        },
+        {
+          label: "Condition pair non respectée",
+          polygon: HEX,
+          inner: { x: null },
+          innerEdges: [
+            ["c0", "x"],
+            ["x", "c3"],
+          ],
+        },
+        {
+          label: "Condition triple non respectée",
+          polygon: HEX,
+          inner: { x: null },
+          innerEdges: [
+            ["c0", "x"],
+            ["c2", "x"],
+            ["c4", "x"],
+          ],
+        },
+        {
+          label: "Les deux conditions non respectées",
+          polygon: HEX,
+          inner: { x: null },
+          innerEdges: [
+            ["c0", "x"],
+            ["c2", "x"],
+            ["c3", "x"],
+          ],
+        },
+      ];
+
+      let sceneIndex = 0;
+      let container;
+      let poly, place, graph, report;
+      let violationView = "pair"; // quelle violation est mise en évidence
+
+      function setup() {
+        container = document.getElementById("canvas-container");
+        createCanvas(container.clientWidth, container.clientHeight).parent(
+          container
+        );
+        buildButtons();
+        buildScene();
+      }
+
+      function draw() {
+        background.apply(null, rgb(PALETTE.background));
+        const scene = SCENES[sceneIndex];
+
+        Geo.drawPolygon(poly, {
+          fill: rgba(PALETTE.polygonFill, FILL_ALPHA),
+          stroke: rgb(PALETTE.polygonLine),
+          strokeWeight: 2.5,
+          vertices: false,
+        });
+
+        scene.innerEdges.forEach(function (e) {
+          Geo.drawSegment(place(e[0]), place(e[1]), {
+            stroke: rgb(PALETTE.innerEdge),
+            strokeWeight: 2.5,
+          });
+        });
+
+        drawViolation();
+
+        drawLabelled(cycleNames(), rgb(PALETTE.cycleVertex), 6);
+        drawLabelled(Object.keys(scene.inner), rgb(PALETTE.innerVertex), 6);
+      }
+
+      // Mise en évidence de la violation courante
+
+      function drawViolation() {
+        if (violationView === "pair" && !report.pair.ok) {
+          const col = rgb(PALETTE.pairViolation);
+          const w = report.pair.violations[0];
+          // Le chemin dans G qui bat le cycle.
+          drawPath(graph.shortestPath("c" + w.i, "c" + w.j), col, 4);
+          ring("c" + w.i, col);
+          ring("c" + w.j, col);
+        } else if (violationView === "triple" && !report.triple.ok) {
+          const col = rgb(PALETTE.tripleViolation);
+          const w = report.triple.violations[0];
+          [w.i, w.j, w.k].forEach(function (m) {
+            drawPath(graph.shortestPath("c" + m, w.v), col, 3);
+            ring("c" + m, col);
+          });
+          ring(w.v, col);
+        }
+      }
+
+      function drawPath(names, col, weight) {
+        if (!names) return;
+        for (let i = 0; i + 1 < names.length; i++) {
+          Geo.drawSegment(place(names[i]), place(names[i + 1]), {
+            stroke: col,
+            strokeWeight: weight,
+          });
+        }
+      }
+
+      function ring(name, col) {
+        const p = place(name);
+        push();
+        noFill();
+        stroke(col[0], col[1], col[2]);
+        strokeWeight(2.5);
+        circle(p.x, p.y, 26);
+        pop();
+      }
+
+      // Sommets étiquetés
+
+      function drawLabelled(names, col, r) {
+        const labelCol = rgb(PALETTE.label);
+        push();
+        names.forEach(function (name) {
+          const p = place(name);
+          noStroke();
+          fill(col[0], col[1], col[2]);
+          circle(p.x, p.y, r * 2);
+          fill(labelCol[0], labelCol[1], labelCol[2]);
+          textSize(13);
+          textAlign(CENTER, CENTER);
+          const off = labelOffset(name, p);
+          text(prettyName(name), p.x + off.x, p.y + off.y);
+        });
+        pop();
+      }
+
+      function labelOffset(name, p) {
+        const d = Geo.sub(p, poly.centroid());
+        const l = Geo.len(d);
+        if (l < 1e-6) return { x: 0, y: -22 };
+        const away = cycleNames().indexOf(name) === -1 ? 20 : 22;
+        return Geo.mul(Geo.mul(d, 1 / l), away);
+      }
+
+      function prettyName(name) {
+        const sub = "₀₁₂₃₄₅₆₇₈₉";
+        return name[0] === "c"
+          ? "c" + name.slice(1).replace(/\d/g, (d) => sub[+d])
+          : name;
+      }
+
+      // Construction
+
+      function cycleNames() {
+        return SCENES[sceneIndex].polygon.map(function (_, i) {
+          return "c" + i;
+        });
+      }
+
+      function buildScene() {
+        const scene = SCENES[sceneIndex];
+        const innerNames = Object.keys(scene.inner);
+
+        // Recadrage sur le polygone seul : les sommets intérieurs sont dedans.
+        const fit = makeFit(scene.polygon.map(Geo.pt), width, height, 60);
+        poly = new Geo.Polygon(scene.polygon.map(Geo.pt).map(fit));
+
+        const coords = {};
+        cycleNames().forEach(function (n, i) {
+          coords[n] = poly.points[i];
+        });
+        const c = poly.centroid();
+        innerNames.forEach(function (n) {
+          coords[n] = scene.inner[n] ? fit(Geo.pt(scene.inner[n])) : c;
+        });
+        place = function (name) {
+          return coords[name];
+        };
+
+        graph = new Geo.Graph();
+        const cyc = cycleNames();
+        cyc.forEach(function (n) {
+          graph.addVertex(n, coords[n]);
+        });
+        cyc.forEach(function (n, i) {
+          graph.addEdge(n, cyc[(i + 1) % cyc.length]);
+        });
+        innerNames.forEach(function (n) {
+          graph.addVertex(n, coords[n]);
+        });
+        scene.innerEdges.forEach(function (e) {
+          graph.addEdge(e[0], e[1]);
+        });
+
+        report = checkConditions(graph, cyc);
+        violationView = report.pair.ok ? "triple" : "pair";
+        updateButtons();
+      }
+
+      function makeFit(points, w, h, pad) {
+        const b = Geo.bbox(points);
+        const k = Math.min(
+          (w - 2 * pad) / (b.width || 1),
+          (h - 2 * pad) / (b.height || 1)
+        );
+        const ox = (w - b.width * k) / 2 - b.minX * k;
+        const oy = (h - b.height * k) / 2 - b.minY * k;
+        return function (p) {
+          return { x: p.x * k + ox, y: p.y * k + oy };
+        };
+      }
+
+      // Conditions Pair et Triple
+
+      function checkConditions(g, cyc) {
+        const t = cyc.length;
+        const dG = {};
+        g.vertices().forEach(function (v) {
+          const r = g.bfs(v);
+          dG[v] = {};
+          r.dist.forEach(function (d, k) {
+            dG[v][k] = d;
+          });
+        });
+        const dC = function (i, j) {
+          const d = Math.abs(i - j);
+          return Math.min(d, t - d);
+        };
+
+        const pairV = [];
+        for (let i = 0; i < t; i++) {
+          for (let j = i + 1; j < t; j++) {
+            const a = dC(i, j);
+            const b = dG[cyc[i]][cyc[j]];
+            if (!(a <= b)) pairV.push({ i: i, j: j, dC: a, dG: b });
+          }
+        }
+
+        const tripleV = [];
+        let tested = 0;
+        for (let i = 0; i < t; i++) {
+          for (let j = i + 1; j < t; j++) {
+            for (let k = j + 1; k < t; k++) {
+              if (dC(i, j) + dC(j, k) + dC(i, k) < t) continue;
+              tested++;
+              const corners = [cyc[i], cyc[j], cyc[k]];
+              g.vertices().forEach(function (v) {
+                if (corners.indexOf(v) !== -1) return;
+                const sum = dG[cyc[i]][v] + dG[cyc[j]][v] + dG[cyc[k]][v];
+                if (!(sum > t / 2)) {
+                  tripleV.push({
+                    i: i,
+                    j: j,
+                    k: k,
+                    v: v,
+                    sum: sum,
+                    bound: t / 2,
+                  });
+                }
+              });
+            }
+          }
+        }
+
+        return {
+          t: t,
+          pair: { ok: pairV.length === 0, violations: pairV },
+          triple: {
+            ok: tripleV.length === 0,
+            violations: tripleV,
+            tested: tested,
+          },
+          universal: pairV.length === 0 && tripleV.length === 0,
+        };
+      }
+
+      // Interface
+
+      function buildButtons() {
+        const box = document.getElementById("scene-buttons");
+        box.innerHTML = "";
+        SCENES.forEach(function (scene, i) {
+          const b = document.createElement("button");
+          b.className = "scene-btn";
+          b.textContent = scene.label;
+          b.onclick = function () {
+            selectScene(i);
+          };
+          box.appendChild(b);
+        });
+        updateButtons();
+      }
+
+      function updateButtons() {
+        const btns = document.querySelectorAll(".scene-btn");
+        for (let i = 0; i < btns.length; i++) {
+          btns[i].classList.toggle("active", i === sceneIndex);
+        }
+      }
+
+      function selectScene(i) {
+        sceneIndex = i;
+        buildScene();
+      }
+
+      function keyPressed() {
+        if (key.toLowerCase() === "v" && !report.pair.ok && !report.triple.ok) {
+          violationView = violationView === "pair" ? "triple" : "pair";
+        }
+        if (keyCode === RIGHT_ARROW)
+          selectScene((sceneIndex + 1) % SCENES.length);
+        if (keyCode === LEFT_ARROW) {
+          selectScene((sceneIndex - 1 + SCENES.length) % SCENES.length);
+        }
+      }
+
+      function windowResized() {
+        resizeCanvas(container.clientWidth, container.clientHeight);
+        buildScene();
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Polygon-universal — spirales</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="geolib.js"></script>
+    <script src="spirals.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="bar">
+        <div class="controls">
+          <button class="btn scene-pick" id="btn-pair">Spirale Pair</button>
+          <button class="btn scene-pick" id="btn-triple">Spirale Triple</button>
+          <button class="btn" id="btn-reset">Recommencer</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvas-container"></div>
+    </div>
+
+    <script>
+      const PALETTE = {
+        background: "#faf7f2",
+        polygon: "#3d4a54",
+        polygonFill: "#3d4a54",
+        cut: "#b9a6a2", // coupes du certificat
+        endpoint: "#0e7c7b", // embouchures / bouts de bras
+        path: "#a63a50", // chemin dessiné
+        pathBad: "#bA7517", // segment qui sort du polygone
+        witness: "#6a4c93", // témoin de la spirale Triple
+        label: "#5c5c5c",
+        regionLight: "#d9d3c9", // en visibilite d une pointe
+        regionDark: "#b3aa9c", // de deux pointes
+        ok: "#2f7d52",
+      };
+
+      function rgb(h) {
+        h = h.replace("#", "");
+        return [
+          parseInt(h.slice(0, 2), 16),
+          parseInt(h.slice(2, 4), 16),
+          parseInt(h.slice(4, 6), 16),
+        ];
+      }
+      function rgba(h, a) {
+        return rgb(h).concat([a]);
+      }
+      let container;
+      let modeName = "pair";
+
+      // Scène Pair
+      let pairScene = null;
+      let path = [];
+      let pairBudget = 5;
+
+      // Scène Triple
+      let tripleScene = null;
+      let witness = null;
+      let dragging = false;
+
+      // =====================================================================
+
+      function setup() {
+        container = document.getElementById("canvas-container");
+        createCanvas(container.clientWidth, container.clientHeight).parent(
+          container
+        );
+        wire();
+        buildPair();
+        buildTriple();
+        syncButtons();
+      }
+
+      function fitInCanvas(points, pad) {
+        const b = Geo.bbox(points);
+        const k = Math.min(
+          (width - 2 * pad) / (b.width || 1),
+          (height - 2 * pad) / (b.height || 1)
+        );
+        const ox = (width - b.width * k) / 2 - b.minX * k;
+        const oy = (height - b.height * k) / 2 - b.minY * k;
+        return (p) => ({ x: p.x * k + ox, y: p.y * k + oy });
+      }
+
+      function buildPair() {
+        const L = 5;
+        const raw = SP.pairSpiral(L, { radius: 300 });
+        const fit = fitInCanvas(raw.polygon.points, 46);
+        const poly = new Geo.Polygon(raw.polygon.points.map(fit));
+        const A = Geo.mid(poly.points[0], poly.points[poly.n - 1]);
+        const B = Geo.mid(poly.points[L], poly.points[L + 1]);
+
+        pairScene = { L, poly, A, B };
+        path = [A];
+        pairBudget = L - 1;
+      }
+      function pinwheel(R, r, twist, shift) {
+        const pts = [];
+        for (let a = 0; a < 3; a++) {
+          const base = (2 * Math.PI * a) / 3;
+          pts.push({
+            x: R * Math.cos(base + twist),
+            y: R * Math.sin(base + twist),
+          });
+          const h = base + (2 * Math.PI) / 6 + shift;
+          pts.push({ x: r * Math.cos(h), y: r * Math.sin(h) });
+        }
+        return new Geo.Polygon(pts);
+      }
+
+      function buildTriple() {
+        const raw = pinwheel(1, 0.14, 0.9, -0.2);
+        const fit = fitInCanvas(raw.points, 46);
+        const poly = new Geo.Polygon(raw.points.map(fit));
+        const tips = [poly.points[0], poly.points[2], poly.points[4]];
+
+        const N = 130;
+        const b = poly.bbox();
+        const vis = new Uint8Array(N * N);
+        for (let j = 0; j < N; j++) {
+          for (let i = 0; i < N; i++) {
+            const p = {
+              x: b.minX + (b.width * i) / (N - 1),
+              y: b.minY + (b.height * j) / (N - 1),
+            };
+            if (poly.locate(p) === "outside") {
+              vis[j * N + i] = 255;
+              continue;
+            }
+            let m = 0;
+            for (let a = 0; a < 3; a++)
+              if (SP.segmentInside(poly, p, tips[a])) m |= 1 << a;
+            vis[j * N + i] = m;
+          }
+        }
+
+        tripleScene = { poly, tips, vis, N, b, img: null };
+        witness = poly.centroid();
+      }
+
+      function draw() {
+        background.apply(null, rgb(PALETTE.background));
+        if (modeName === "pair") drawPair();
+        else drawTriple();
+      }
+
+      function drawScenePolygon(poly) {
+        Geo.drawPolygon(poly, {
+          fill: rgba(PALETTE.polygonFill, 18),
+          stroke: rgb(PALETTE.polygon),
+          strokeWeight: 2,
+          vertices: false,
+        });
+      }
+
+      function drawPair() {
+        const S = pairScene;
+        drawScenePolygon(S.poly);
+
+        dot(S.A, rgb(PALETTE.endpoint), 7, "p₀");
+        dot(S.B, rgb(PALETTE.endpoint), 7, "p" + sub(S.L));
+
+        for (let i = 0; i + 1 < path.length; i++) {
+          const okSeg = SP.segmentInside(S.poly, path[i], path[i + 1]);
+          Geo.drawSegment(path[i], path[i + 1], {
+            stroke: rgb(okSeg ? PALETTE.path : PALETTE.pathBad),
+            strokeWeight: 2.5,
+          });
+        }
+        path.forEach((p, i) => {
+          if (i > 0) dot(p, rgb(PALETTE.path), 4, null);
+        });
+
+        const m = { x: mouseX, y: mouseY };
+        if (inCanvas() && path.length <= pairBudget) {
+          const okSeg = SP.segmentInside(S.poly, path[path.length - 1], m);
+          Geo.drawSegment(path[path.length - 1], m, {
+            stroke: rgba(okSeg ? PALETTE.path : PALETTE.pathBad, 120),
+            strokeWeight: 1.5,
+            dashed: true,
+          });
+        }
+
+        const used = path.length - 1;
+        push();
+        noStroke();
+        const lc = rgb(PALETTE.label);
+        fill(lc[0], lc[1], lc[2]);
+        textSize(13);
+        textAlign(LEFT, TOP);
+        text(used + " / " + pairBudget + " segments", 14, 12);
+        pop();
+      }
+
+      function drawTriple() {
+        const S = tripleScene;
+
+        if (!S.img) {
+          S.img = createImage(S.N, S.N);
+          S.img.loadPixels();
+          const light = rgb(PALETTE.regionLight);
+          const dark = rgb(PALETTE.regionDark);
+          for (let k = 0; k < S.N * S.N; k++) {
+            const m = S.vis[k];
+            let c = null;
+            if (m !== 255) {
+              const n = (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1);
+              if (n === 1) c = light;
+              else if (n >= 2) c = dark;
+            }
+            const o = 4 * k;
+            if (c) {
+              S.img.pixels[o] = c[0];
+              S.img.pixels[o + 1] = c[1];
+              S.img.pixels[o + 2] = c[2];
+              S.img.pixels[o + 3] = 190;
+            } else {
+              S.img.pixels[o + 3] = 0;
+            }
+          }
+          S.img.updatePixels();
+        }
+        push();
+        image(S.img, S.b.minX, S.b.minY, S.b.width, S.b.height);
+        pop();
+        drawScenePolygon(S.poly);
+
+        const seen = [0, 1, 2].map((a) =>
+          SP.segmentInside(S.poly, witness, S.tips[a])
+        );
+        [0, 1, 2].forEach((a) => {
+          Geo.drawSegment(witness, S.tips[a], {
+            stroke: seen[a] ? rgb(PALETTE.ok) : rgba(PALETTE.pathBad, 150),
+            strokeWeight: seen[a] ? 2.5 : 1.5,
+            dashed: !seen[a],
+          });
+        });
+        S.tips.forEach((p, a) =>
+          dot(p, rgb(PALETTE.endpoint), 7, "p" + "\u2080\u2082\u2084"[a])
+        );
+        dot(witness, rgb(PALETTE.witness), 8, "v");
+
+        const n = seen.filter(Boolean).length;
+      }
+
+      // Interaction
+
+      function mousePressed() {
+        if (!inCanvas()) return;
+        const m = { x: mouseX, y: mouseY };
+        if (modeName === "pair") {
+          if (path.length - 1 >= pairBudget) return;
+          path.push(m);
+          return;
+        }
+        if (Geo.dist(m, witness) < 20) dragging = true;
+        else if (tripleScene.poly.locate(m) !== "outside") {
+          witness = m;
+          dragging = true;
+        }
+      }
+
+      function mouseDragged() {
+        if (modeName === "triple" && dragging) {
+          const m = { x: mouseX, y: mouseY };
+          if (tripleScene.poly.locate(m) !== "outside") witness = m;
+        }
+      }
+
+      function mouseReleased() {
+        dragging = false;
+      }
+
+      function keyPressed() {
+        if (keyCode === BACKSPACE && modeName === "pair" && path.length > 1)
+          path.pop();
+      }
+
+      function inCanvas() {
+        return (
+          mouseX >= 0 && mouseY >= 0 && mouseX <= width && mouseY <= height
+        );
+      }
+
+      // Primitives
+
+      function dot(p, col, r, txt) {
+        push();
+        noStroke();
+        fill(col[0], col[1], col[2]);
+        circle(p.x, p.y, r * 2);
+        pop();
+        if (txt) labelAt({ x: p.x + 12, y: p.y - 12 }, txt);
+      }
+
+      function labelAt(p, txt) {
+        const lc = rgb(PALETTE.label);
+        push();
+        noStroke();
+        fill(lc[0], lc[1], lc[2]);
+        textSize(12);
+        textAlign(CENTER, CENTER);
+        text(txt, p.x, p.y);
+        pop();
+      }
+
+      function sub(i) {
+        return String(i).replace(/\d/g, (d) => "₀₁₂₃₄₅₆₇₈₉"[+d]);
+      }
+
+      // Interface
+
+      function wire() {
+        document.getElementById("btn-pair").onclick = () => {
+          modeName = "pair";
+          syncButtons();
+        };
+        document.getElementById("btn-triple").onclick = () => {
+          modeName = "triple";
+          syncButtons();
+        };
+        document.getElementById("btn-reset").onclick = () => {
+          if (modeName === "pair") path = [pairScene.A];
+          else witness = tripleScene.poly.centroid();
+        };
+      }
+
+      function syncButtons() {
+        document
+          .getElementById("btn-pair")
+          .classList.toggle("active", modeName === "pair");
+        document
+          .getElementById("btn-triple")
+          .classList.toggle("active", modeName === "triple");
+      }
+
+      function windowResized() {
+        resizeCanvas(container.clientWidth, container.clientHeight);
+        buildPair();
+        buildTriple();
+      }
+    </script>
+  </body>
+</html>

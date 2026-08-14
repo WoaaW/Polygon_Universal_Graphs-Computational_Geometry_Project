@@ -1,0 +1,67 @@
+:root {
+  --page: #ece7e0; /* fond de la page */
+  --surface: #faf7f2; /* boutons + canvas (= PALETTE.background) */
+  --ink: #3d4a54; /* texte principal et accent actif */
+  --muted: #8a8078; /* texte secondaire (les tags) */
+  --border: #d6cfc6; /* bordure au repos */
+  --border-hover: #a89e93;
+  --radius: 8px;
+}
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--page);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: var(--ink);
+}
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/*  boutons de scène */
+
+.scenes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.scene-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.scene-btn:hover {
+  border-color: var(--border-hover);
+}
+
+.scene-btn.active {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+/* canvas */
+
+#canvas-container {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
+}
+
+#canvas-container canvas {
+  display: block;
+}
