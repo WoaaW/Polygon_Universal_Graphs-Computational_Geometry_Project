@@ -39,10 +39,10 @@
   <main>
     <section id="probleme">
       <h2>1. Le problème</h2>
-      Nous débutons par étudier une question fondamentale en tracé de graphes : étant donné une pair \((G, C)\)
-      d'un graphe G, un cycle C autour de G et un Polygone P ayant autant de sommet que le cycle C, existe-t-il
+      Nous commençons par étudier une question fondamentale en tracé de graphes : étant donné une paire \((G, C)\)
+      d'un graphe G, un cycle C autour de G et un polygone P ayant autant de sommets que le cycle C, existe-t-il
       un dessin (sans courbe) de G à l'intérieur de P avec le cycle C qui correspond au polygone P.
-      Dans le cas ou un graphe accepterais P pour tous les polygones simples, nous disons que l'instance \((G, C)\)
+      Dans le cas où un graphe accepterais P pour tous les polygones simples, nous disons que l'instance \((G, C)\)
       est <i>polygon-universal</i>. <br>
       L'article présente donc deux conditions nécessaires et suffisantes pour qu'une instance soit
       <i>polygon-universal</i>.
@@ -57,11 +57,11 @@
 
 
       <div class="definition">
-        <p><strong>\(G = (V,E)\)</strong> est graphe avec n sommet.</p>
+        <p><strong>\(G = (V,E)\)</strong> est un graphe avec n sommet.</p>
       </div>
       <div class="definition">
-        <p>Un dessin \(D\) de \(G\) est une application de chaque \(v \in V(G)\) à des points sur le plan
-          et de chaque arrêtes \(e \in E(G)\) à des Courbes de Jordan reliant ses extrémités.
+        <p>Un dessin \(D\) de \(G\) est une application de chaque \(v \in V(G)\) à des points du plan
+          et de chaque arête \(e \in E(G)\) à des courbes de Jordan reliant ses extrémités.
         </p>
       </div>
       <div class="definition">
@@ -74,9 +74,9 @@
         </p>
       </div>
       <div class="definition">
-        <p>Soit \(P\), un polygone simple avec \(t\) arrêtes \([p_1,...,p_t]\) avec \(p_i \in \mathbb{R}^2\).
+        <p>Soit \(P\), un polygone simple avec \(t\) sommets \([p_1,...,p_t]\) avec \(p_i \in \mathbb{R}^2\).
           Un dessin \(D\) de \((G,C)\) respecte \(P\) s'il s'agit d'une application \(D : V \to P\) des sommets de G
-          jusqu'aux points de telle façon que \(D(c_i) = p_i\) et que pour chaque arrête \(\{u,v\} \in E\) le segment
+          jusqu'aux points de telle façon que \(D(c_i) = p_i\) et que pour chaque arête \(\{u,v\} \in E\) le segment
           entre \(D(u)\) et \(D(v)\) se trouve dans \(P\). <br>
           Une instance \((G,C)\) est <i>polygon-universal</i> si elle admet un dessin planaire en ligne droite qui
           respecte
@@ -99,8 +99,8 @@
     <section id="conditions">
       <h2>3. Les deux conditions</h2>
 
-      Cette première condition définit le fait qu'aucun "raccourcis" ne peut exister à l'intérieur du graphe.
-      Cela veut dire que pour chaque sommets appartenant au cycle, le plus court chemin vers un autre sommet du cycle
+      Cette première condition définit le fait qu'aucun "raccourci" ne peut exister à l'intérieur du graphe.
+      Cela veut dire que pour chaque sommet appartenant au cycle, le plus court chemin vers un autre sommet du cycle
       doit se trouver
       sur ce cycle.
       <div class="callout">
@@ -109,11 +109,11 @@
       </div>
 
       Cette seconde condition nous dit qu'aucun sommet ne peut être trop central vis-à-vis de trois autres sommets
-      du cycle. Nous prenons donc 3 sommets sur le cycle \(C\), la distance d'un à l'autre sur \(C\) est donc égal à
+      du cycle. Nous prenons donc 3 sommets sur le cycle \(C\), la distance de l'un à l'autre sur \(C\) est donc égal à
       \(t\) (le nombre de sommets de \(C\)).
       Par rapport à un témoin \(v \in V\), la somme des distances entre \(v\) et les sommets \(c_i,c_j,c_k\) doit être
       strictement inférieur
-      a la moitié du nombre de sommets sur le Cycle.
+      à la moitié du nombre de sommets sur le Cycle.
       <div class="callout">
         <p><strong>Condition Triple.</strong> Pour tous les sommets \(v \in V\) et les \(i, j, k\) distincts avec
           \(d_C(c_i,c_j) + d_C(c_j,c_k) + d_C(c_k,c_i) = t\ \) :</p>
@@ -124,10 +124,10 @@
     <section id="exemples">
       <h2>4. Exemples</h2>
 
-      Ci-dessous les 4 cas de figures illustrés :
+      Ci-dessous les 4 cas de figure illustrés :
       <ul>
         <li>1. Cette instance est <i>polygon-universal</i> ; nous voyons bien que les deux conditions sont respectées.
-          La distance sur le graphe et sur le cycle entre \(c_0\) et \(c_3\) sont égales donc la condition pair est
+          Les distances sur le graphe et sur le cycle entre \(c_0\) et \(c_3\) sont égales donc la condition pair est
           validée.
           Nous voyons aussi assez simplement que si nous prenons par exemple le sommet \(x\), et trois sommets sur \(C\)
           nous aurons toujours :
@@ -135,16 +135,16 @@
         </li>
 
         <li>
-          2. Sur cette instance nous voyons que \(d_C(c_0,c_3) \gt d_G(c_0,c_3)\) ce qui viole la condition pair.
+          2. Sur cette instance nous voyons que \(d_C(c_0,c_3) \gt d_G(c_0,c_3)\), ce qui viole la condition pair.
         </li>
 
         <li>
           3. Sur cette instance nous voyons que \(d_G(c_0,x) + d_G(c_2,x) + d_G(c_4,x) = 3\) et comme \(t/2 = 3\) la
           condition triple est violée alors
-          que la seconde tenait encore.
+          que la pair tenait encore.
         </li>
         <li>
-          4. Cetter dernière instance est simplement un example avec les deux conditions violées.
+          4. Cette dernière instance est simplement un exemple avec les deux conditions violées.
         </li>
       </ul>
 
@@ -159,8 +159,8 @@
 
       Voici deux exemples de la nécessité des conditions. Tout d'abord, quand la condition
       pair n'est pas respectée, il nous suffit de créer un polygone \(P\) en spirale pour montrer
-      qu'il existe au moins un polygone que l'instance ne pourra pas respectée. Ce premier exemple
-      laisse tracer à l'utilisateur 4 segments pour montrer qu'il est impossible d'obtenir un graphe
+      qu'il existe au moins un polygone que l'instance ne pourra pas respecter. Ce premier exemple
+      laisse l'utilisateur tracer 4 segments pour montrer qu'il est impossible d'obtenir un graphe
       respectant \(P\) sans corriger la condition paire (dans ce cas précis ajouter un cinquième
       segment la corrigerait). <br>
       Pour la condition triple, le procédé est similaire, quand celle-ci n'est pas respectée, il nous
@@ -190,7 +190,7 @@
 
       Combiné aux spirales, ce théorème nous donne donc bien : \((G,C)\) est <i>polygon-universal</i>
       si et seulement si les conditions pair et triple sont satisfaites. Nous avons donc une propriété
-      sur une infinitée de polygones se ramènant à deux égalités sur des distances entières.
+      sur une infinité de polygones se ramenant à deux égalités sur des distances entières.
 
       <h3>Nature de la preuve</h3>
 
@@ -251,7 +251,7 @@
       <br>
       L'article fait donc disparaître cette quantification car les conditions pair et triple ne parlent
       ni de coordonnées, ni d'angles, ni de polygones : uniquement de distances entières dans le graphe et le
-      long du cycle. Une infinité de configurations est donc remplacé par deux inégalités et le problème
+      long du cycle. Une infinité de configurations est donc remplacée par deux inégalités et le problème
       redescend donc en temps polynomial.
       <br>
       <br>
@@ -259,7 +259,7 @@
       les polygones à trous. <br>
       Le coût de la vérification des deux conditions demande, avec un algorithme naïf, \(\Omega(n^3)\) opérations (comme
       celui implémenté
-      ci-dessus) mais pourraît probablement être amélioré.
+      ci-dessus) mais pourrait probablement être amélioré.
     </section>
 
     <section id="references">
@@ -279,7 +279,7 @@
           In Proc. 44th International Workshop on Graph-Theoretic Concepts in
           Computer Science, LNCS 11159, pages 164–175, 2018.
           <a href="https://link.springer.com/chapter/10.1007/978-3-030-00256-5_14" target="_blank"
-            rel="noopener">doi:10.1007/978-3-030-00256-5\_14></a>
+            rel="noopener">doi:10.1007/978-3-030-00256-5</a>
         </li>
 
         <li id="ref-canny">
@@ -287,9 +287,9 @@
           <em>
             Some algebraic and geometric computations in PSPACE
           </em>
-          InProc. 20th Symposium on Theory of Computing, page 460–467, 1988.
+          In Proc. 20th Symposium on Theory of Computing, page 460–467, 1988.
           <a href="https://dl.acm.org/doi/10.1145/62212.62257" target="_blank"
-            rel="noopener">doi:10.1145/62212.62257></a>
+            rel="noopener">doi:10.1145/62212.62257</a>
         </li>
 
       </ol>
