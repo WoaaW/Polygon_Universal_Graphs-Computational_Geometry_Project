@@ -508,7 +508,7 @@
           const p = graph.position(v);
           if (p) ring(p, rgb(PALETTE.pairFail), 28, 3);
         });
-        setStatus("⚠ " + analysis.error);
+        setStatus(analysis.error);
       }
 
       function drawPairStep(p) {
@@ -621,7 +621,7 @@
         return (
           head +
           (a.universal
-            ? "Pair : oui | Triple : non | L'instance est polygone-universelle"
+            ? "Pair : oui | Triple : oui | L'instance est polygone-universelle"
             : "Pair " +
               (c.pairOK ? ": oui |" : ": non |") +
               " Triple " +
